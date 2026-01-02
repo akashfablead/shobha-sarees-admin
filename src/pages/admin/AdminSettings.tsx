@@ -3,27 +3,103 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  getStoreSettings,
+  updateStoreSettings,
+} from "../../services/settingsService";
 
 export default function AdminSettings() {
   const [settings, setSettings] = useState({
-    storeName: "Shobha Saree",
-    tagline: "Timeless Elegance in Every Thread",
-    email: "info@shobhasaree.com",
-    phone: "9265996898 / 8780381473",
-    address: "J-133/134, J J AC Textile Market, Ring Road, Surat",
-    whatsapp: "919265996898",
+    storeName: "",
+    tagline: "",
+    email: "",
+    phone: "",
+    address: "",
+    whatsapp: "",
+    instagram: "",
+    facebook: "",
   });
 
-  const handleSave = () => {
-    // Static save - would connect to backend later
-    alert("Settings saved successfully!");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Load settings on component mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const data = await getStoreSettings();
+        setSettings({
+          storeName: data.storeName || "",
+          tagline: data.tagline || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          whatsapp: data.whatsapp || "",
+          instagram: data.instagram || "",
+          facebook: data.facebook || "",
+        });
+      } catch (error) {
+        console.error("Error loading settings:", error);
+        // Set default values if loading fails
+        setSettings({
+          storeName: "Shobha Saree",
+          tagline: "Timeless Elegance in Every Thread",
+          email: "info@shobhasaree.com",
+          phone: "9265996898 / 8780381473",
+          address: "J-133/134, J J AC Textile Market, Ring Road, Surat",
+          whatsapp: "919265996898",
+          instagram: "",
+          facebook: "",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleInputChange = (field) => (e) => {
+    setSettings({
+      ...settings,
+      [field]: e.target.value,
+    });
   };
 
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await updateStoreSettings(settings);
+      alert("Settings saved successfully!");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      alert("Error saving settings. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-serif font-bold text-foreground">
+            Settings
+          </h1>
+          <p className="text-muted-foreground mt-1">Loading settings...</p>
+        </div>
+        <div className="text-center py-10">Loading...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6 max-w-2xl">
+    <div className="space-y-6 ">
       <div>
-        <h1 className="text-3xl font-serif font-bold text-foreground">Settings</h1>
+        <h1 className="text-3xl font-serif font-bold text-foreground">
+          Settings
+        </h1>
         <p className="text-muted-foreground mt-1">Manage your store settings</p>
       </div>
 
@@ -38,7 +114,7 @@ export default function AdminSettings() {
             <Input
               id="storeName"
               value={settings.storeName}
-              onChange={(e) => setSettings({ ...settings, storeName: e.target.value })}
+              onChange={handleInputChange("storeName")}
             />
           </div>
           <div>
@@ -46,7 +122,7 @@ export default function AdminSettings() {
             <Input
               id="tagline"
               value={settings.tagline}
-              onChange={(e) => setSettings({ ...settings, tagline: e.target.value })}
+              onChange={handleInputChange("tagline")}
             />
           </div>
         </CardContent>
@@ -64,7 +140,7 @@ export default function AdminSettings() {
               id="email"
               type="email"
               value={settings.email}
-              onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+              onChange={handleInputChange("email")}
             />
           </div>
           <div>
@@ -72,15 +148,17 @@ export default function AdminSettings() {
             <Input
               id="phone"
               value={settings.phone}
-              onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
+              onChange={handleInputChange("phone")}
             />
           </div>
           <div>
-            <Label htmlFor="whatsapp">WhatsApp Number (with country code)</Label>
+            <Label htmlFor="whatsapp">
+              WhatsApp Number (with country code)
+            </Label>
             <Input
               id="whatsapp"
               value={settings.whatsapp}
-              onChange={(e) => setSettings({ ...settings, whatsapp: e.target.value })}
+              onChange={handleInputChange("whatsapp")}
               placeholder="919265996898"
             />
           </div>
@@ -89,7 +167,7 @@ export default function AdminSettings() {
             <Textarea
               id="address"
               value={settings.address}
-              onChange={(e) => setSettings({ ...settings, address: e.target.value })}
+              onChange={handleInputChange("address")}
               rows={2}
             />
           </div>
@@ -104,17 +182,27 @@ export default function AdminSettings() {
         <CardContent className="space-y-4">
           <div>
             <Label htmlFor="instagram">Instagram URL</Label>
-            <Input id="instagram" placeholder="https://instagram.com/shobhasaree" />
+            <Input
+              id="instagram"
+              value={settings.instagram}
+              onChange={handleInputChange("instagram")}
+              placeholder="https://instagram.com/shobhasaree"
+            />
           </div>
           <div>
             <Label htmlFor="facebook">Facebook URL</Label>
-            <Input id="facebook" placeholder="https://facebook.com/shobhasaree" />
+            <Input
+              id="facebook"
+              value={settings.facebook}
+              onChange={handleInputChange("facebook")}
+              placeholder="https://facebook.com/shobhasaree"
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Button onClick={handleSave} size="lg">
-        Save Settings
+      <Button onClick={handleSave} size="lg" disabled={saving}>
+        {saving ? "Saving..." : "Save Settings"}
       </Button>
     </div>
   );

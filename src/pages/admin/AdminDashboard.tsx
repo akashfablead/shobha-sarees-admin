@@ -1,30 +1,76 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, FolderOpen, Image, TrendingUp } from "lucide-react";
-
-const stats = [
-  { title: "Total Sarees", value: "156", icon: Image, change: "+12%" },
-  { title: "Collections", value: "8", icon: FolderOpen, change: "+2" },
-  { title: "Catalogs", value: "4", icon: Package, change: "Active" },
-  { title: "Page Views", value: "2.4K", icon: TrendingUp, change: "+18%" },
-];
-
-const recentActivity = [
-  { action: "Added new Paithani Silk saree", time: "2 hours ago" },
-  { action: "Updated Wedding Collection", time: "5 hours ago" },
-  { action: "New catalog created: Summer 2024", time: "1 day ago" },
-  { action: "Removed outdated saree listing", time: "2 days ago" },
-];
+import { useState, useEffect } from "react";
+import { getAdminDashboardStats } from "../../services/adminService";
 
 export default function AdminDashboard() {
+  const [stats, setStats] = useState([
+    { title: "Total Sarees", value: "0", icon: Image, change: "Loading..." },
+    {
+      title: "Collections",
+      value: "0",
+      icon: FolderOpen,
+      change: "Loading...",
+    },
+    { title: "Catalogs", value: "0", icon: Package, change: "Loading..." },
+  ]);
+
+  const [recentActivity, setRecentActivity] = useState([
+    { action: "Loading recent activity...", time: "" },
+  ]);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const data = await getAdminDashboardStats();
+
+        setStats([
+          {
+            title: "Total Sarees",
+            value: data.totalSarees?.toString() || "0",
+            icon: Image,
+            change: "+12%",
+          },
+          {
+            title: "Collections",
+            value: data.totalCollections?.toString() || "0",
+            icon: FolderOpen,
+            change: "+2",
+          },
+          {
+            title: "Catalogs",
+            value: data.totalCatalogs?.toString() || "0",
+            icon: Package,
+            change: "Active",
+          },
+        ]);
+
+        setRecentActivity(data.recentActivity || []);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-serif font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back to Shobha Saree Admin</p>
+        <h1 className="text-3xl font-serif font-bold text-foreground">
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Welcome back to Shobha Saree Admin
+        </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {stats.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -48,12 +94,21 @@ export default function AdminDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <span className="text-foreground">{activity.action}</span>
-                <span className="text-sm text-muted-foreground">{activity.time}</span>
-              </div>
-            ))}
+            {recentActivity.length > 0 ? (
+              recentActivity.map((activity, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                >
+                  <span className="text-foreground">{activity.action}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {activity.time}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground">No recent activity</p>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -673,7 +673,7 @@ export default function AdminCatalogs() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
-                      <CollapsibleTrigger asChild>
+                      {/* <CollapsibleTrigger asChild>
                         <Button variant="ghost" size="sm">
                           {expandedCatalogs.includes(catalog.id) ? (
                             <ChevronUp className="h-4 w-4" />
@@ -681,7 +681,7 @@ export default function AdminCatalogs() {
                             <ChevronDown className="h-4 w-4" />
                           )}
                         </Button>
-                      </CollapsibleTrigger>
+                      </CollapsibleTrigger> */}
                     </div>
                   </div>
                 </CardHeader>

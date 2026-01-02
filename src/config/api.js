@@ -5,6 +5,9 @@ import { toast } from "sonner";
 // Base URLs from environment variables
 export const BASE_URL = import.meta.env.VITE_BASE_URL;
 
+// Admin API base URL
+export const ADMIN_API_BASE_URL = `${BASE_URL}/admin`;
+
 // API endpoints
 const API = {
   BASE_URL,

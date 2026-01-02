@@ -1,4 +1,10 @@
-import { apiService } from "../config/api";
+import { apiService } from '../config/api';
+
+// Admin Dashboard API functions
+export const getAdminDashboardStats = async () => {
+    const res = await apiService.get(`/admin/dashboard/stats`);
+    return res.data;
+};
 
 // Saree API functions
 export const getSarees = async () => {
@@ -53,6 +59,17 @@ export const deleteSaree = async (id) => {
 };
 
 // Catalog API functions
+export const getSareeCategories = async () => {
+    const res = await apiService.get(`/admin/saree-categories`);
+    return res.data;
+};
+
+// getCatalogsNameId
+export const getCatalogsNameId = async () => {
+    const res = await apiService.get(`/admin/catalogs/name-id`);
+    return res.data;
+};
+
 export const getAllSareeCategories = async () => {
     const res = await apiService.get(`/admin/saree-categories`);
     return res.data;
@@ -191,3 +208,4 @@ export const deleteCollection = async (id) => {
     });
     return res.data;
 };
+

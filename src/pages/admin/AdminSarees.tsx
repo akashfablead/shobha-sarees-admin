@@ -37,6 +37,9 @@ import {
   updateSaree,
   deleteSaree,
   getCatalogs,
+  getCatalogsNameId,
+  getCollections,
+  getCategories,
 } from "@/services/adminService";
 
 interface Catalog {
@@ -56,22 +59,39 @@ interface Saree {
   name: string;
   description: string;
   price: number;
-  category: string; // This will now be a catalog ID
+  collectionId: string; // This is the collection ID
+  catalogId: string; // This is the catalog ID
   fabric: string;
   color: string;
   work: string;
   image?: string;
   createdAt?: string;
   updatedAt?: string;
+  catalog?: {
+    id: string;
+    name: string;
+    description: string;
+    image?: string;
+    status: string;
+  };
+  collection?: {
+    id: string;
+    name: string;
+    description: string;
+    image?: string;
+    featured: boolean;
+  };
 }
 
-type CategoryType = Saree["category"];
+type CatalogType = Saree["catalogId"];
+type CollectionType = Saree["collectionId"];
 
 interface SareeForm {
   name: string;
   description: string;
   price: number;
-  category: CategoryType;
+  catalogId: CatalogType;
+  collectionId: CollectionType;
   fabric: string;
   color: string;
   work: string;
@@ -82,7 +102,8 @@ const defaultFormData: SareeForm = {
   name: "",
   description: "",
   price: 0,
-  category: "", // Will be converted to catalog ID on submit
+  catalogId: "",
+  collectionId: "", // Will be converted to collection ID on submit
   fabric: "",
   color: "",
   work: "",
@@ -90,11 +111,14 @@ const defaultFormData: SareeForm = {
 
 export default function AdminSarees() {
   const [catalogs, setCatalogs] = useState<Catalog[]>([]);
-  const [categories, setCategories] = useState<string[]>([]); // For dropdown display
+  const [collections, setCollections] = useState<Catalog[]>([]); // For collections dropdown (using catalogs for now)
+  const [allCollections, setAllCollections] = useState<Catalog[]>([]); // For collections
+  const [categories, setCategories] = useState<string[]>([]); // For categories dropdown
   const [sareeList, setSareeList] = useState<Saree[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [collectionFilter, setCollectionFilter] = useState("all");
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [sareeToDelete, setSareeToDelete] = useState<{
@@ -126,21 +150,35 @@ export default function AdminSarees() {
     }
   };
 
-  const fetchCategories = async () => {
-    const response = await getCatalogs();
-    if (response.success && response.data) {
-      // Store full catalog objects
-      setCatalogs(response.data);
-      // Extract catalog names for dropdown display
-      const catalogNames = response.data.map((catalog) => catalog.name);
-      setCategories(catalogNames);
+  const fetchCatalogs = async () => {
+    try {
+      const response = await getCatalogsNameId();
+      if (response.success && response.data) {
+        // Store catalog objects with only name and ID
+        setCatalogs(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching catalogs:", error);
     }
   };
 
-  // Load sarees and categories on component mount
+  const fetchCollections = async () => {
+    try {
+      const response = await getCollections();
+      if (response.success && response.data) {
+        // Store full collection objects
+        setCollections(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching collections:", error);
+    }
+  };
+
+  // Load sarees, catalogs and collections on component mount
   useEffect(() => {
     fetchSarees();
-    fetchCategories();
+    fetchCatalogs();
+    fetchCollections();
   }, []);
 
   const filteredSarees = sareeList.filter((saree) => {
@@ -148,27 +186,31 @@ export default function AdminSarees() {
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
 
-    // Find the catalog name that matches the saree's category ID
-    const catalog = catalogs.find((c) => c._id === saree.category);
-    const catalogName = catalog ? catalog.name : "";
+    // Use embedded collection data
+    const collectionName = saree.collection?.name || "";
+    // Use embedded catalog data
+    const catalogName = saree.catalog?.name || "";
 
     const matchesCategory =
       categoryFilter === "all" || catalogName === categoryFilter;
-    return matchesSearch && matchesCategory;
+    const matchesCollection =
+      collectionFilter === "all" || collectionName === collectionFilter;
+    return matchesSearch && matchesCategory && matchesCollection;
   });
 
   const handleEdit = (saree: Saree) => {
     setEditingSaree(saree);
 
-    // Find the catalog name that matches the saree's category ID
-    const catalog = catalogs.find((c) => c._id === saree.category);
-    const catalogName = catalog ? catalog.name : "";
+    // Find the catalog name that matches the saree's collection ID
+    const catalog = catalogs.find((c) => c._id === saree.collectionId);
+    const collectionName = catalog ? catalog.name : "";
 
     setFormData({
       name: saree.name,
       description: saree.description,
       price: saree.price,
-      category: catalogName, // Use catalog name for display
+      catalogId: saree.catalogId, // Use category for display
+      collectionId: collectionName, // Use collection name for display
       fabric: saree.fabric,
       color: saree.color,
       work: saree.work,
@@ -187,9 +229,15 @@ export default function AdminSarees() {
       if (response.success) {
         setSareeList(sareeList.filter((s) => s.id !== id));
         toast.success("Saree deleted successfully");
+      } else {
+        toast.error(response.message || "Failed to delete saree");
       }
     } catch (error) {
-      toast.error("Failed to delete saree");
+      toast.error(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to delete saree"
+      );
       console.error("Error deleting saree:", error);
     } finally {
       setIsDeleteDialogOpen(false);
@@ -203,12 +251,15 @@ export default function AdminSarees() {
     try {
       // Convert catalog name to ID
       const selectedCatalog = catalogs.find(
-        (c) => c.name === formData.category
+        (c) => c.name === formData.catalogId
       );
       const catalogId = selectedCatalog ? selectedCatalog._id : "";
 
-      // NOTE: To use catalog IDs as categories, the backend Saree model validation
-      // needs to be updated to accept catalog IDs instead of predefined categories
+      // Convert collection name to ID
+      const selectedCollection = collections.find(
+        (c) => c.name === formData.collectionId
+      );
+      const collectionId = selectedCollection ? selectedCollection._id : "";
 
       if (editingSaree) {
         // Update existing saree
@@ -216,7 +267,8 @@ export default function AdminSarees() {
           name: formData.name,
           description: formData.description,
           price: formData.price,
-          category: catalogId, // Use catalog ID instead of name
+          catalogId: formData.catalogId, // ✅ direct ID
+          collectionId: formData.collectionId, // ✅ direct ID
           fabric: formData.fabric,
           color: formData.color,
           work: formData.work,
@@ -237,14 +289,15 @@ export default function AdminSarees() {
           name: formData.name,
           description: formData.description,
           price: formData.price,
-          category: catalogId, // Use catalog ID instead of name
+          catalogId: formData.catalogId, // ✅ ID
+          collectionId: formData.collectionId, // ✅ ID
           fabric: formData.fabric,
           color: formData.color,
           work: formData.work,
           image: formData.image,
         });
 
-        if (response.success) {
+        if (response.success === true) {
           setSareeList([
             ...sareeList,
             { ...response.data, id: response.data._id || response.data.id },
@@ -257,9 +310,6 @@ export default function AdminSarees() {
       setEditingSaree(null);
       setFormData(defaultFormData);
     } catch (error) {
-      toast.error(
-        editingSaree ? "Failed to update saree" : "Failed to create saree"
-      );
       console.error(
         editingSaree ? "Error updating saree:" : "Error creating saree:",
         error
@@ -309,7 +359,7 @@ export default function AdminSarees() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="price">Price (₹)</Label>
                   <Input
@@ -326,35 +376,54 @@ export default function AdminSarees() {
                     required
                   />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="collectionId">Collection</Label>
 
                   <Select
-                    value={formData.category}
+                    value={formData.collectionId}
                     onValueChange={(value) =>
-                      setFormData({ ...formData, category: value })
+                      setFormData({ ...formData, collectionId: value })
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue placeholder="Select collection" />
                     </SelectTrigger>
 
                     <SelectContent>
-                      {categories.length === 0 ? (
-                        <SelectItem value="loading" disabled>
-                          Loading...
+                      {collections.map((collection) => (
+                        <SelectItem key={collection._id} value={collection._id}>
+                          {collection.name}
                         </SelectItem>
-                      ) : (
-                        categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))
-                      )}
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="catalog">Catalog</Label>
+
+                  <Select
+                    value={formData.catalogId}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, catalogId: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select catalog" />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {catalogs.map((cat) => (
+                        <SelectItem key={cat._id} value={cat._id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="fabric">Fabric</Label>
@@ -457,15 +526,15 @@ export default function AdminSarees() {
             className="pl-10"
           />
         </div>
-        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+        <Select value={collectionFilter} onValueChange={setCollectionFilter}>
           <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="All Categories" />
+            <SelectValue placeholder="All Collections" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Categories</SelectItem>
-            {categories.map((cat) => (
-              <SelectItem key={cat} value={cat}>
-                {cat}
+            <SelectItem value="all">All Collections</SelectItem>
+            {collections.map((collection) => (
+              <SelectItem key={collection._id} value={collection._id}>
+                {collection.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -488,8 +557,7 @@ export default function AdminSarees() {
                 {saree.name}
               </h3>
               <p className="text-sm text-muted-foreground">
-                {catalogs.find((c) => c._id === saree.category)?.name ||
-                  saree.category}
+                {saree.collection?.name || saree.collectionId}
               </p>
               <p className="text-primary font-semibold mt-1">
                 ₹{saree.price.toLocaleString()}
@@ -504,20 +572,16 @@ export default function AdminSarees() {
                   <Pencil className="h-3 w-3 mr-1" />
                   Edit
                 </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleDelete(saree)}
+                >
+                  <Trash2 className="h-3 w-3" />
+                </Button>
                 <AlertDialog
                   open={isDeleteDialogOpen && sareeToDelete?.id === saree.id}
-                  onOpenChange={(open) => {
-                    if (!open) {
-                      setIsDeleteDialogOpen(false);
-                      setSareeToDelete(null);
-                    }
-                  }}
                 >
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="sm">
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -528,7 +592,14 @@ export default function AdminSarees() {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel
+                        onClick={() => {
+                          setIsDeleteDialogOpen(false);
+                          setSareeToDelete(null);
+                        }}
+                      >
+                        Cancel
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={() => confirmDelete(saree.id)}
                         className="bg-destructive hover:bg-destructive/90"
