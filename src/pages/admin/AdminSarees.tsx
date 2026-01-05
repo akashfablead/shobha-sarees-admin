@@ -36,8 +36,6 @@ import {
   createSaree,
   updateSaree,
   deleteSaree,
-  getCatalogs,
-  getCatalogsNameId,
   getCollections,
   getCategories,
 } from "@/services/adminService";
@@ -60,20 +58,14 @@ interface Saree {
   description: string;
   price: number;
   collectionId: string; // This is the collection ID
-  catalogId: string; // This is the catalog ID
+
   fabric: string;
   color: string;
   work: string;
   image?: string;
   createdAt?: string;
   updatedAt?: string;
-  catalog?: {
-    id: string;
-    name: string;
-    description: string;
-    image?: string;
-    status: string;
-  };
+
   collection?: {
     id: string;
     name: string;
@@ -83,14 +75,14 @@ interface Saree {
   };
 }
 
-type CatalogType = Saree["catalogId"];
+
 type CollectionType = Saree["collectionId"];
 
 interface SareeForm {
   name: string;
   description: string;
   price: number;
-  catalogId: CatalogType;
+
   collectionId: CollectionType;
   fabric: string;
   color: string;
@@ -102,7 +94,7 @@ const defaultFormData: SareeForm = {
   name: "",
   description: "",
   price: 0,
-  catalogId: "",
+
   collectionId: "", // Will be converted to collection ID on submit
   fabric: "",
   color: "",
@@ -110,9 +102,8 @@ const defaultFormData: SareeForm = {
 };
 
 export default function AdminSarees() {
-  const [catalogs, setCatalogs] = useState<Catalog[]>([]);
-  const [collections, setCollections] = useState<Catalog[]>([]); // For collections dropdown (using catalogs for now)
-  const [allCollections, setAllCollections] = useState<Catalog[]>([]); // For collections
+  const [collections, setCollections] = useState<any[]>([]); // For collections dropdown
+
   const [categories, setCategories] = useState<string[]>([]); // For categories dropdown
   const [sareeList, setSareeList] = useState<Saree[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,18 +141,6 @@ export default function AdminSarees() {
     }
   };
 
-  const fetchCatalogs = async () => {
-    try {
-      const response = await getCatalogsNameId();
-      if (response.success && response.data) {
-        // Store catalog objects with only name and ID
-        setCatalogs(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching catalogs:", error);
-    }
-  };
-
   const fetchCollections = async () => {
     try {
       const response = await getCollections();
@@ -174,10 +153,9 @@ export default function AdminSarees() {
     }
   };
 
-  // Load sarees, catalogs and collections on component mount
+  // Load sarees and collections on component mount
   useEffect(() => {
     fetchSarees();
-    fetchCatalogs();
     fetchCollections();
   }, []);
 
@@ -186,31 +164,23 @@ export default function AdminSarees() {
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
 
-    // Use embedded collection data
-    const collectionName = saree.collection?.name || "";
-    // Use embedded catalog data
-    const catalogName = saree.catalog?.name || "";
-
-    const matchesCategory =
-      categoryFilter === "all" || catalogName === categoryFilter;
+    const matchesCategory = true;
     const matchesCollection =
-      collectionFilter === "all" || collectionName === collectionFilter;
+      collectionFilter === "all" || saree.collectionId === collectionFilter;
     return matchesSearch && matchesCategory && matchesCollection;
   });
 
   const handleEdit = (saree: Saree) => {
     setEditingSaree(saree);
 
-    // Find the catalog name that matches the saree's collection ID
-    const catalog = catalogs.find((c) => c._id === saree.collectionId);
-    const collectionName = catalog ? catalog.name : "";
+    const collectionName = saree.collection?.name || "";
 
     setFormData({
       name: saree.name,
       description: saree.description,
       price: saree.price,
-      catalogId: saree.catalogId, // Use category for display
-      collectionId: collectionName, // Use collection name for display
+
+      collectionId: saree.collectionId || "", // Use collection ID for display
       fabric: saree.fabric,
       color: saree.color,
       work: saree.work,
@@ -249,15 +219,9 @@ export default function AdminSarees() {
     e.preventDefault();
 
     try {
-      // Convert catalog name to ID
-      const selectedCatalog = catalogs.find(
-        (c) => c.name === formData.catalogId
-      );
-      const catalogId = selectedCatalog ? selectedCatalog._id : "";
-
       // Convert collection name to ID
       const selectedCollection = collections.find(
-        (c) => c.name === formData.collectionId
+        (c) => c._id === formData.collectionId
       );
       const collectionId = selectedCollection ? selectedCollection._id : "";
 
@@ -267,7 +231,6 @@ export default function AdminSarees() {
           name: formData.name,
           description: formData.description,
           price: formData.price,
-          catalogId: formData.catalogId, // ✅ direct ID
           collectionId: formData.collectionId, // ✅ direct ID
           fabric: formData.fabric,
           color: formData.color,
@@ -289,7 +252,6 @@ export default function AdminSarees() {
           name: formData.name,
           description: formData.description,
           price: formData.price,
-          catalogId: formData.catalogId, // ✅ ID
           collectionId: formData.collectionId, // ✅ ID
           fabric: formData.fabric,
           color: formData.color,
@@ -395,28 +357,6 @@ export default function AdminSarees() {
                       {collections.map((collection) => (
                         <SelectItem key={collection._id} value={collection._id}>
                           {collection.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="catalog">Catalog</Label>
-
-                  <Select
-                    value={formData.catalogId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, catalogId: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select catalog" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {catalogs.map((cat) => (
-                        <SelectItem key={cat._id} value={cat._id}>
-                          {cat.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

@@ -3,7 +3,7 @@ import { apiService } from '../config/api';
 // Admin Dashboard API functions
 export const getAdminDashboardStats = async () => {
     const res = await apiService.get(`/admin/dashboard/stats`);
-    return res.data;
+    return res.data.data;
 };
 
 // Saree API functions
@@ -58,98 +58,7 @@ export const deleteSaree = async (id) => {
     return res.data;
 };
 
-// Catalog API functions
-export const getSareeCategories = async () => {
-    const res = await apiService.get(`/admin/saree-categories`);
-    return res.data;
-};
 
-// getCatalogsNameId
-export const getCatalogsNameId = async () => {
-    const res = await apiService.get(`/admin/catalogs/name-id`);
-    return res.data;
-};
-
-export const getAllSareeCategories = async () => {
-    const res = await apiService.get(`/admin/saree-categories`);
-    return res.data;
-};
-export const getCatalogs = async () => {
-    const res = await apiService.get(`/admin/catalogs`);
-    return res.data;
-};
-
-export const getCatalogById = async (id) => {
-    const res = await apiService.get(`/admin/catalogs/${id}`);
-    return res.data;
-};
-
-export const createCatalog = async (catalogData) => {
-    const formData = new FormData();
-
-    // Add all catalog data to FormData
-    Object.keys(catalogData).forEach(key => {
-        if (catalogData[key] !== undefined && catalogData[key] !== null) {
-            formData.append(key, catalogData[key]);
-        }
-    });
-
-    const res = await apiService.post(`/admin/catalogs`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        showSuccess: true,
-    });
-    return res.data;
-};
-
-export const updateCatalog = async (id, catalogData) => {
-    const formData = new FormData();
-
-    // Add all catalog data to FormData
-    Object.keys(catalogData).forEach(key => {
-        if (catalogData[key] !== undefined && catalogData[key] !== null) {
-            formData.append(key, catalogData[key]);
-        }
-    });
-
-    const res = await apiService.put(`/admin/catalogs/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        showSuccess: true,
-    });
-    return res.data;
-};
-
-export const deleteCatalog = async (id) => {
-    const res = await apiService.delete(`/admin/catalogs/${id}`, {
-        showSuccess: true,
-    });
-    return res.data;
-};
-
-export const addSareeToCatalog = async (catalogId, sareeId) => {
-    const res = await apiService.post(`/admin/catalogs/add-saree`, {
-        catalogId,
-        sareeId
-    }, {
-        headers: {
-            "Content-Type": "application/json",
-        },
-        showSuccess: true,
-    });
-    return res.data;
-};
-
-export const removeSareeFromCatalog = async (catalogId, sareeId) => {
-    const res = await apiService.post(`/admin/catalogs/remove-saree`, {
-        catalogId,
-        sareeId
-    }, {
-        headers: {
-            "Content-Type": "application/json",
-        },
-        showSuccess: true,
-    });
-    return res.data;
-};
 
 // Category API functions
 export const getCategories = async () => {
@@ -208,4 +117,3 @@ export const deleteCollection = async (id) => {
     });
     return res.data;
 };
-

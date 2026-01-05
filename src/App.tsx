@@ -7,7 +7,6 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminCatalogs from "./pages/admin/AdminCatalogs";
 import AdminCollections from "./pages/admin/AdminCollections";
 import AdminSarees from "./pages/admin/AdminSarees";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -46,7 +45,6 @@ const App = () => (
               }
             >
               <Route index element={<AdminDashboard />} />
-              <Route path="catalogs" element={<AdminCatalogs />} />
               <Route path="collections" element={<AdminCollections />} />
               <Route path="sarees" element={<AdminSarees />} />
               <Route path="settings" element={<AdminSettings />} />

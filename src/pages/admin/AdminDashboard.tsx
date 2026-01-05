@@ -5,18 +5,17 @@ import { getAdminDashboardStats } from "../../services/adminService";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState([
-    { title: "Total Sarees", value: "0", icon: Image, change: "Loading..." },
+    { title: "Total Sarees", value: "0", icon: Image, change: "0" },
     {
       title: "Collections",
       value: "0",
       icon: FolderOpen,
-      change: "Loading...",
+      change: "0",
     },
-    { title: "Catalogs", value: "0", icon: Package, change: "Loading..." },
   ]);
 
   const [recentActivity, setRecentActivity] = useState([
-    { action: "Loading recent activity...", time: "" },
+    { action: "Loading recent activity...", time: "", type: "" },
   ]);
 
   const [loading, setLoading] = useState(true);
@@ -31,25 +30,31 @@ export default function AdminDashboard() {
             title: "Total Sarees",
             value: data.totalSarees?.toString() || "0",
             icon: Image,
-            change: "+12%",
+            change: data.totalSarees > 0 ? `+${data.totalSarees}` : "0",
           },
           {
             title: "Collections",
             value: data.totalCollections?.toString() || "0",
             icon: FolderOpen,
-            change: "+2",
-          },
-          {
-            title: "Catalogs",
-            value: data.totalCatalogs?.toString() || "0",
-            icon: Package,
-            change: "Active",
+            change:
+              data.totalCollections > 0 ? `+${data.totalCollections}` : "0",
           },
         ]);
 
         setRecentActivity(data.recentActivity || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
+        // Set default values in case of error
+        setStats([
+          { title: "Total Sarees", value: "0", icon: Image, change: "0" },
+          {
+            title: "Collections",
+            value: "0",
+            icon: FolderOpen,
+            change: "0",
+          },
+        ]);
+        setRecentActivity([]);
       } finally {
         setLoading(false);
       }
@@ -70,7 +75,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {stats.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -124,9 +129,6 @@ export default function AdminDashboard() {
           </button>
           <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors">
             Create Collection
-          </button>
-          <button className="px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors">
-            Upload Catalog
           </button>
         </CardContent>
       </Card>

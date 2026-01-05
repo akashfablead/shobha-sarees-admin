@@ -8,17 +8,35 @@ import {
   getStoreSettings,
   updateStoreSettings,
 } from "../../services/settingsService";
+import { ADMIN_API_BASE_URL } from "../../config/api";
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState({
+  type SettingsType = {
+    storeName: string;
+    tagline: string;
+    subTagline: string;
+    email: string;
+    phone: string;
+    address: string;
+    whatsapp: string;
+    instagram: string;
+    facebook: string;
+    logoImage: string | File;
+    bannerImage: string | File;
+  };
+
+  const [settings, setSettings] = useState<SettingsType>({
     storeName: "",
     tagline: "",
+    subTagline: "",
     email: "",
     phone: "",
     address: "",
     whatsapp: "",
     instagram: "",
     facebook: "",
+    logoImage: "",
+    bannerImage: "",
   });
 
   const [loading, setLoading] = useState(true);
@@ -32,12 +50,15 @@ export default function AdminSettings() {
         setSettings({
           storeName: data.storeName || "",
           tagline: data.tagline || "",
+          subTagline: data.subTagline || "",
           email: data.email || "",
           phone: data.phone || "",
           address: data.address || "",
           whatsapp: data.whatsapp || "",
           instagram: data.instagram || "",
           facebook: data.facebook || "",
+          logoImage: data.logoImage || "",
+          bannerImage: data.bannerImage || "",
         });
       } catch (error) {
         console.error("Error loading settings:", error);
@@ -45,12 +66,15 @@ export default function AdminSettings() {
         setSettings({
           storeName: "Shobha Saree",
           tagline: "Timeless Elegance in Every Thread",
+          subTagline: "",
           email: "info@shobhasaree.com",
           phone: "9265996898 / 8780381473",
           address: "J-133/134, J J AC Textile Market, Ring Road, Surat",
           whatsapp: "919265996898",
           instagram: "",
           facebook: "",
+          logoImage: "",
+          bannerImage: "",
         });
       } finally {
         setLoading(false);
@@ -60,17 +84,63 @@ export default function AdminSettings() {
     loadSettings();
   }, []);
 
-  const handleInputChange = (field) => (e) => {
-    setSettings({
-      ...settings,
-      [field]: e.target.value,
-    });
+  const handleInputChange =
+    (field: keyof SettingsType) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setSettings({
+        ...settings,
+        [field]: e.target.value,
+      });
+    };
+
+  // Function to upload image
+  const uploadImage = async (file, imageType) => {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${ADMIN_API_BASE_URL}/settings/image`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to upload image");
+      }
+
+      return result.data.imageUrl;
+    } catch (error) {
+      console.error(`Error uploading ${imageType} image:`, error);
+      throw error;
+    }
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateStoreSettings(settings);
+      // If we have File objects for images, upload them first and get URLs
+      let updatedSettings = { ...settings };
+
+      if (settings.logoImage && typeof settings.logoImage !== "string") {
+        const logoUrl = await uploadImage(settings.logoImage, "logo");
+        updatedSettings.logoImage = logoUrl;
+      }
+
+      if (settings.bannerImage && typeof settings.bannerImage !== "string") {
+        const bannerUrl = await uploadImage(settings.bannerImage, "banner");
+        updatedSettings.bannerImage = bannerUrl;
+      }
+
+      await updateStoreSettings(updatedSettings);
       alert("Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -123,6 +193,14 @@ export default function AdminSettings() {
               id="tagline"
               value={settings.tagline}
               onChange={handleInputChange("tagline")}
+            />
+          </div>
+          <div>
+            <Label htmlFor="subTagline">Sub Tagline</Label>
+            <Input
+              id="subTagline"
+              value={settings.subTagline}
+              onChange={handleInputChange("subTagline")}
             />
           </div>
         </CardContent>
@@ -197,6 +275,93 @@ export default function AdminSettings() {
               onChange={handleInputChange("facebook")}
               placeholder="https://facebook.com/shobhasaree"
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Store Images</CardTitle>
+          <CardDescription>
+            Upload your store logo and banner images
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="logoImage">Logo Image</Label>
+            <div className="flex flex-col gap-2">
+              <Input
+                id="logoImage"
+                type="file"
+                accept="image/*"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSettings({
+                      ...settings,
+                      logoImage: e.target.files[0],
+                    });
+                  }
+                }}
+              />
+              {typeof settings.logoImage === "string" && settings.logoImage && (
+                <div className="mt-2">
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Current Logo:
+                  </p>
+                  <img
+                    src={settings.logoImage}
+                    alt="Current logo"
+                    className="max-h-20 object-contain border rounded"
+                  />
+                </div>
+              )}
+              {settings.logoImage && typeof settings.logoImage !== "string" && (
+                <div className="mt-2">
+                  <p className="text-sm text-muted-foreground mb-1">
+                    Selected Logo: {settings.logoImage.name}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="bannerImage">Banner Image</Label>
+            <div className="flex flex-col gap-2">
+              <Input
+                id="bannerImage"
+                type="file"
+                accept="image/*"
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                  if (e.target.files && e.target.files[0]) {
+                    setSettings({
+                      ...settings,
+                      bannerImage: e.target.files[0],
+                    });
+                  }
+                }}
+              />
+              {typeof settings.bannerImage === "string" &&
+                settings.bannerImage && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Current Banner:
+                    </p>
+                    <img
+                      src={settings.bannerImage}
+                      alt="Current banner"
+                      className="max-h-32 object-contain border rounded w-full"
+                    />
+                  </div>
+                )}
+              {settings.bannerImage &&
+                typeof settings.bannerImage !== "string" && (
+                  <div className="mt-2">
+                    <p className="text-sm text-muted-foreground mb-1">
+                      Selected Banner: {settings.bannerImage.name}
+                    </p>
+                  </div>
+                )}
+            </div>
           </div>
         </CardContent>
       </Card>

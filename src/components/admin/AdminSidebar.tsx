@@ -28,7 +28,7 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-  { title: "Catalogs", url: "/admin/catalogs", icon: FolderOpen },
+
   { title: "Collections", url: "/admin/collections", icon: Package },
   { title: "Sarees", url: "/admin/sarees", icon: Image },
   { title: "Settings", url: "/admin/settings", icon: Settings },
@@ -80,11 +80,6 @@ export function AdminSidebar() {
               Shobha Saree
             </h1>
             <p className="text-xs text-muted-foreground mt-1">Admin Panel</p>
-            {user && (
-              <p className="text-xs text-muted-foreground mt-1 truncate">
-                Welcome, {user.username}
-              </p>
-            )}
           </div>
 
           {/* Navigation */}
