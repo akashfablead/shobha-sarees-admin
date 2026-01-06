@@ -28,7 +28,6 @@ import {
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
-
   { title: "Collections", url: "/admin/collections", icon: Package },
   { title: "Sarees", url: "/admin/sarees", icon: Image },
   { title: "Settings", url: "/admin/settings", icon: Settings },

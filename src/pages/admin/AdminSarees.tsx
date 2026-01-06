@@ -302,155 +302,160 @@ export default function AdminSarees() {
               Add Saree
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+            <DialogHeader className="p-6 pb-0">
               <DialogTitle>
                 {editingSaree ? "Edit Saree" : "Add New Saree"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Saree Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  placeholder="Enter saree name"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-1 gap-4">
+            <div className="overflow-y-auto flex-1 px-6 py-2">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <Label htmlFor="price">Price (₹)</Label>
+                  <Label htmlFor="name">Saree Name</Label>
                   <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
+                    id="name"
+                    value={formData.name}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        price: Number(e.target.value),
-                      })
+                      setFormData({ ...formData, name: e.target.value })
                     }
-                    placeholder="18999"
+                    placeholder="Enter saree name"
                     required
                   />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="collectionId">Collection</Label>
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="price">Price (₹)</Label>
+                    <Input
+                      id="price"
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          price: Number(e.target.value),
+                        })
+                      }
+                      placeholder="18999"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="collectionId">Collection</Label>
 
-                  <Select
-                    value={formData.collectionId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, collectionId: value })
+                    <Select
+                      value={formData.collectionId}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, collectionId: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select collection" />
+                      </SelectTrigger>
+
+                      <SelectContent>
+                        {collections.map((collection) => (
+                          <SelectItem
+                            key={collection._id}
+                            value={collection._id}
+                          >
+                            {collection.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="fabric">Fabric</Label>
+                    <Input
+                      id="fabric"
+                      value={formData.fabric}
+                      onChange={(e) =>
+                        setFormData({ ...formData, fabric: e.target.value })
+                      }
+                      placeholder="e.g., Pure Silk"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="color">Color</Label>
+                    <Input
+                      id="color"
+                      value={formData.color}
+                      onChange={(e) =>
+                        setFormData({ ...formData, color: e.target.value })
+                      }
+                      placeholder="e.g., Red"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label htmlFor="work">Work Type</Label>
+                  <Input
+                    id="work"
+                    value={formData.work}
+                    onChange={(e) =>
+                      setFormData({ ...formData, work: e.target.value })
                     }
+                    placeholder="e.g., Zari Work"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) =>
+                      setFormData({ ...formData, description: e.target.value })
+                    }
+                    placeholder="Enter description"
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label className="mb-2 block">Images</Label>
+
+                  {/* Hidden file input */}
+                  <input
+                    id="sareeImages"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      const files = e.target.files;
+                      if (files) {
+                        setFormData({
+                          ...formData,
+                          image: files[0], // ya array bana sakte ho agar backend support karta ho
+                        });
+                      }
+                    }}
+                  />
+
+                  {/* Custom upload box */}
+                  <label
+                    htmlFor="sareeImages"
+                    className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select collection" />
-                    </SelectTrigger>
-
-                    <SelectContent>
-                      {collections.map((collection) => (
-                        <SelectItem key={collection._id} value={collection._id}>
-                          {collection.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Click to upload images
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      PNG, JPG, JPEG allowed
+                    </p>
+                  </label>
                 </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="fabric">Fabric</Label>
-                  <Input
-                    id="fabric"
-                    value={formData.fabric}
-                    onChange={(e) =>
-                      setFormData({ ...formData, fabric: e.target.value })
-                    }
-                    placeholder="e.g., Pure Silk"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="color">Color</Label>
-                  <Input
-                    id="color"
-                    value={formData.color}
-                    onChange={(e) =>
-                      setFormData({ ...formData, color: e.target.value })
-                    }
-                    placeholder="e.g., Red"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="work">Work Type</Label>
-                <Input
-                  id="work"
-                  value={formData.work}
-                  onChange={(e) =>
-                    setFormData({ ...formData, work: e.target.value })
-                  }
-                  placeholder="e.g., Zari Work"
-                />
-              </div>
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder="Enter description"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <Label className="mb-2 block">Images</Label>
-
-                {/* Hidden file input */}
-                <input
-                  id="sareeImages"
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    if (files) {
-                      setFormData({
-                        ...formData,
-                        image: files[0], // ya array bana sakte ho agar backend support karta ho
-                      });
-                    }
-                  }}
-                />
-
-                {/* Custom upload box */}
-                <label
-                  htmlFor="sareeImages"
-                  className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
-                >
-                  <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">
-                    Click to upload images
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    PNG, JPG, JPEG allowed
-                  </p>
-                </label>
-              </div>
-
-              <Button type="submit" className="w-full">
-                {editingSaree ? "Update Saree" : "Add Saree"}
-              </Button>
-            </form>
+                <Button type="submit" className="w-full">
+                  {editingSaree ? "Update Saree" : "Add Saree"}
+                </Button>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

@@ -34,20 +34,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Check if user is authenticated on app load
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      // Verify token by fetching user profile
-      getProfile()
-        .then((userData) => {
+    const initializeAuth = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          // Verify token by fetching user profile
+          const userData = await getProfile();
           setUser(userData);
-        })
-        .catch((error) => {
+        } catch (error) {
           console.error("Error fetching user profile", error);
-          // If token is invalid, clear it
-          localStorage.removeItem("token");
-        });
-    }
-    setIsLoading(false);
+
+          // Only remove token if it's specifically an unauthorized error (401)
+          // This prevents removing valid tokens due to temporary network issues
+          const status = error?.response?.status;
+
+          if (status === 401) {
+            console.log("Token is invalid (401), removing from storage");
+            localStorage.removeItem("token");
+          } else {
+            console.log("Network error or other issue, keeping token");
+            console.log("Error details:", {
+              status: status,
+              message: error?.message || "Unknown error",
+              hasResponse: !!error?.response,
+              hasRequest: !!error?.request,
+            });
+
+            // For network errors (no response), server errors, or other issues, keep the token
+            // The user will be prompted to log in again when they try to make authenticated API calls
+          }
+        }
+      }
+      setIsLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
