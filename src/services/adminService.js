@@ -7,8 +7,19 @@ export const getAdminDashboardStats = async () => {
 };
 
 // Saree API functions
-export const getSarees = async () => {
-    const res = await apiService.get(`/admin/sarees`);
+export const getSarees = async (category, search, page = 1, limit = 12, collectionId) => {
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (category && category !== 'all') params.append('category', category);
+    if (search) params.append('search', search);
+    params.append('page', page);
+    params.append('limit', limit);
+    if (collectionId && collectionId !== 'all') params.append('collectionId', collectionId);
+
+    const queryString = params.toString();
+    const url = `/admin/sarees${queryString ? '?' : ''}${queryString}`;
+
+    const res = await apiService.get(url);
     return res.data;
 };
 
@@ -113,6 +124,33 @@ export const updateCollection = async (id, collectionData) => {
 
 export const deleteCollection = async (id) => {
     const res = await apiService.delete(`/admin/collections/${id}`, {
+        showSuccess: true,
+    });
+    return res.data;
+};
+
+// Testimonial API functions
+export const getTestimonials = async () => {
+    const res = await apiService.get(`/admin/testimonials`);
+    return res.data;
+};
+
+export const createTestimonial = async (testimonialData) => {
+    const res = await apiService.post(`/admin/testimonials`, testimonialData, {
+        showSuccess: true,
+    });
+    return res.data;
+};
+
+export const updateTestimonial = async (id, testimonialData) => {
+    const res = await apiService.put(`/admin/testimonials/${id}`, testimonialData, {
+        showSuccess: true,
+    });
+    return res.data;
+};
+
+export const deleteTestimonial = async (id) => {
+    const res = await apiService.delete(`/admin/testimonials/${id}`, {
         showSuccess: true,
     });
     return res.data;

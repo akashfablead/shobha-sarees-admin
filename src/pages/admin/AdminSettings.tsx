@@ -9,6 +9,7 @@ import {
   updateStoreSettings,
 } from "../../services/settingsService";
 import { ADMIN_API_BASE_URL } from "../../config/api";
+import { toast } from "sonner";
 
 export default function AdminSettings() {
   type SettingsType = {
@@ -141,10 +142,9 @@ export default function AdminSettings() {
       }
 
       await updateStoreSettings(updatedSettings);
-      alert("Settings saved successfully!");
+      toast.success("Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
-      alert("Error saving settings. Please try again.");
     } finally {
       setSaving(false);
     }

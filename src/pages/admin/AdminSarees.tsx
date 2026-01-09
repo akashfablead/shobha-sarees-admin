@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, Image, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Image, Search, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -75,7 +75,6 @@ interface Saree {
   };
 }
 
-
 type CollectionType = Saree["collectionId"];
 
 interface SareeForm {
@@ -103,10 +102,15 @@ const defaultFormData: SareeForm = {
 
 export default function AdminSarees() {
   const [collections, setCollections] = useState<any[]>([]); // For collections dropdown
+  const [collectionsLoading, setCollectionsLoading] = useState(true);
 
   const [categories, setCategories] = useState<string[]>([]); // For categories dropdown
   const [sareeList, setSareeList] = useState<Saree[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(12);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [collectionFilter, setCollectionFilter] = useState("all");
@@ -118,21 +122,36 @@ export default function AdminSarees() {
   } | null>(null);
   const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
   const [formData, setFormData] = useState<SareeForm>(defaultFormData);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchSarees = async () => {
     try {
       setLoading(true);
-      const response = await getSarees();
+      const response = await getSarees(
+        categoryFilter === "all" ? undefined : categoryFilter,
+        searchTerm,
+        page,
+        limit,
+        collectionFilter === "all" ? undefined : collectionFilter
+      );
       if (response.success) {
         // Handle pagination data if present
         const sareesData = response.data.sarees || response.data;
+        const pagination = response.data.pagination;
 
         // Normalize the data to match our interface
         const normalizedSarees = sareesData.map((saree: any) => ({
           ...saree,
           id: saree._id || saree.id,
         }));
+
         setSareeList(normalizedSarees);
+
+        if (pagination) {
+          setTotal(pagination.total);
+          setPages(pagination.pages);
+          setPage(pagination.page || page); // Update current page if needed
+        }
       }
     } catch (error) {
       console.error("Error fetching sarees:", error);
@@ -143,6 +162,7 @@ export default function AdminSarees() {
 
   const fetchCollections = async () => {
     try {
+      setCollectionsLoading(true);
       const response = await getCollections();
       if (response.success && response.data) {
         // Store full collection objects
@@ -150,6 +170,8 @@ export default function AdminSarees() {
       }
     } catch (error) {
       console.error("Error fetching collections:", error);
+    } finally {
+      setCollectionsLoading(false);
     }
   };
 
@@ -159,16 +181,19 @@ export default function AdminSarees() {
     fetchCollections();
   }, []);
 
-  const filteredSarees = sareeList.filter((saree) => {
-    const matchesSearch = saree.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
+  // Reload sarees when filters change
+  useEffect(() => {
+    setPage(1); // Reset to first page when filters change
+    fetchSarees();
+  }, [categoryFilter, searchTerm, collectionFilter]);
 
-    const matchesCategory = true;
-    const matchesCollection =
-      collectionFilter === "all" || saree.collectionId === collectionFilter;
-    return matchesSearch && matchesCategory && matchesCollection;
-  });
+  // Reload sarees when page or limit changes
+  useEffect(() => {
+    fetchSarees();
+  }, [page, limit]);
+
+  // Use the sareeList as is since filtering is done on the server
+  const displayedSarees = sareeList;
 
   const handleEdit = (saree: Saree) => {
     setEditingSaree(saree);
@@ -217,6 +242,7 @@ export default function AdminSarees() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
       // Convert collection name to ID
@@ -276,6 +302,8 @@ export default function AdminSarees() {
         editingSaree ? "Error updating saree:" : "Error creating saree:",
         error
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -340,7 +368,7 @@ export default function AdminSarees() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="collectionId">Collection</Label>
 
@@ -451,8 +479,21 @@ export default function AdminSarees() {
                   </label>
                 </div>
 
-                <Button type="submit" className="w-full">
-                  {editingSaree ? "Update Saree" : "Add Saree"}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {editingSaree ? "Updating..." : "Adding..."}
+                    </>
+                  ) : editingSaree ? (
+                    "Update Saree"
+                  ) : (
+                    "Add Saree"
+                  )}
                 </Button>
               </form>
             </div>
@@ -473,11 +514,11 @@ export default function AdminSarees() {
         </div>
         <Select value={collectionFilter} onValueChange={setCollectionFilter}>
           <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder="All Collections" />
+            <SelectValue placeholder={collectionsLoading ? "Loading..." : "All Collections"} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Collections</SelectItem>
-            {collections.map((collection) => (
+            {!collectionsLoading && collections.map((collection) => (
               <SelectItem key={collection._id} value={collection._id}>
                 {collection.name}
               </SelectItem>
@@ -488,7 +529,7 @@ export default function AdminSarees() {
 
       {/* Sarees Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {filteredSarees.map((saree) => (
+        {displayedSarees.map((saree) => (
           <Card key={saree.id} className="overflow-hidden">
             <div className="aspect-[3/4] bg-muted">
               <img
@@ -560,9 +601,64 @@ export default function AdminSarees() {
         ))}
       </div>
 
-      {filteredSarees.length === 0 && (
+      {displayedSarees.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">No sarees found</p>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {pages > 1 && (
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            Showing {(page - 1) * limit + 1}-{Math.min(page * limit, total)} of{" "}
+            {total} sarees
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page <= 1}
+            >
+              Previous
+            </Button>
+
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+                let pageNum;
+                if (pages <= 5) {
+                  pageNum = i + 1;
+                } else if (page <= 3) {
+                  pageNum = i + 1;
+                } else if (page >= pages - 2) {
+                  pageNum = pages - 4 + i;
+                } else {
+                  pageNum = page - 2 + i;
+                }
+
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={page === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(Math.min(pages, page + 1))}
+              disabled={page >= pages}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </div>

@@ -5,12 +5,11 @@ import { getAdminDashboardStats } from "../../services/adminService";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState([
-    { title: "Total Sarees", value: "0", icon: Image, change: "0" },
+    { title: "Total Sarees", value: "0", icon: Image },
     {
       title: "Collections",
       value: "0",
       icon: FolderOpen,
-      change: "0",
     },
   ]);
 
@@ -30,14 +29,11 @@ export default function AdminDashboard() {
             title: "Total Sarees",
             value: data.totalSarees?.toString() || "0",
             icon: Image,
-            change: data.totalSarees > 0 ? `+${data.totalSarees}` : "0",
           },
           {
             title: "Collections",
             value: data.totalCollections?.toString() || "0",
             icon: FolderOpen,
-            change:
-              data.totalCollections > 0 ? `+${data.totalCollections}` : "0",
           },
         ]);
 
@@ -46,12 +42,11 @@ export default function AdminDashboard() {
         console.error("Error fetching dashboard data:", error);
         // Set default values in case of error
         setStats([
-          { title: "Total Sarees", value: "0", icon: Image, change: "0" },
+          { title: "Total Sarees", value: "0", icon: Image },
           {
             title: "Collections",
             value: "0",
             icon: FolderOpen,
-            change: "0",
           },
         ]);
         setRecentActivity([]);
@@ -79,14 +74,13 @@ export default function AdminDashboard() {
         {stats.map((stat) => (
           <Card key={stat.title}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+              <CardTitle className="text-sm font-medium font-bold text-muted-foreground">
                 {stat.title}
               </CardTitle>
               <stat.icon className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-primary mt-1">{stat.change}</p>
+              <div className="text-3xl font-bold text-foreground">{stat.value}</div>
             </CardContent>
           </Card>
         ))}
