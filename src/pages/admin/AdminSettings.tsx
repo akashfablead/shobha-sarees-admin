@@ -65,13 +65,13 @@ export default function AdminSettings() {
         console.error("Error loading settings:", error);
         // Set default values if loading fails
         setSettings({
-          storeName: "Shobha Saree",
-          tagline: "Timeless Elegance in Every Thread",
+          storeName: "",
+          tagline: "",
           subTagline: "",
-          email: "info@shobhasaree.com",
-          phone: "9265996898 / 8780381473",
-          address: "J-133/134, J J AC Textile Market, Ring Road, Surat",
-          whatsapp: "919265996898",
+          email: "",
+          phone: "",
+          address: "",
+          whatsapp: "",
           instagram: "",
           facebook: "",
           logoImage: "",

@@ -155,3 +155,31 @@ export const deleteTestimonial = async (id) => {
     });
     return res.data;
 };
+
+// Contact API functions
+export const getContacts = async (status, search, page = 1, limit = 10) => {
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (search) params.append('search', search);
+    params.append('page', page);
+    params.append('limit', limit);
+
+    const queryString = params.toString();
+    const url = `/admin/contacts${queryString ? '?' : ''}${queryString}`;
+
+    const res = await apiService.get(url);
+    return res.data;
+};
+
+export const getContactById = async (id) => {
+    const res = await apiService.get(`/admin/contacts/${id}`);
+    return res.data;
+};
+
+export const updateContact = async (id, contactData) => {
+    const res = await apiService.put(`/admin/contacts/${id}`, contactData, {
+        showSuccess: true,
+    });
+    return res.data;
+};

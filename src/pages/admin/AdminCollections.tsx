@@ -62,6 +62,7 @@ export default function AdminCollections() {
     featured: false,
     image: null as File | null | undefined,
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load collections on component mount
   useEffect(() => {
@@ -90,6 +91,7 @@ export default function AdminCollections() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
 
     try {
       if (editingCollection) {
@@ -160,6 +162,8 @@ export default function AdminCollections() {
           : "Error creating collection:",
         error
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -327,8 +331,17 @@ export default function AdminCollections() {
                 />
                 <Label htmlFor="featured">Featured on homepage</Label>
               </div>
-              <Button type="submit" className="w-full">
-                {editingCollection ? "Update Collection" : "Create Collection"}
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin h-4 w-4 mr-2 border-2 border-white border-t-transparent rounded-full inline-block"></span>
+                    {editingCollection ? "Updating..." : "Creating..."}
+                  </>
+                ) : editingCollection ? (
+                  "Update Collection"
+                ) : (
+                  "Create Collection"
+                )}
               </Button>
             </form>
           </DialogContent>

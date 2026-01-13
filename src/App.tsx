@@ -11,6 +11,7 @@ import AdminCollections from "./pages/admin/AdminCollections";
 import AdminSarees from "./pages/admin/AdminSarees";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminTestimonials from "./pages/admin/AdminTestimonials";
+import AdminContacts from "./pages/admin/AdminContacts";
 import { ProtectedRoute } from "./components/RouteProtector";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -49,6 +50,7 @@ const App = () => (
               <Route path="collections" element={<AdminCollections />} />
               <Route path="sarees" element={<AdminSarees />} />
               <Route path="testimonials" element={<AdminTestimonials />} />
+              <Route path="contacts" element={<AdminContacts />} />
               <Route path="settings" element={<AdminSettings />} />
             </Route>
 

@@ -31,6 +31,7 @@ const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Collections", url: "/admin/collections", icon: Package },
   { title: "Sarees", url: "/admin/sarees", icon: Image },
+  { title: "Contacts", url: "/admin/contacts", icon: MessageSquare },
   { title: "Testimonials", url: "/admin/testimonials", icon: MessageSquare },
   { title: "Settings", url: "/admin/settings", icon: Settings },
 ];
