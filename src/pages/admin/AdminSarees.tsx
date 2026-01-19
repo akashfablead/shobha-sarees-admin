@@ -56,13 +56,13 @@ interface Saree {
   id: string;
   name: string;
   description: string;
-  price: number;
   collectionId: string; // This is the collection ID
 
   fabric: string;
   color: string;
   work: string;
   image?: string;
+  images?: string[]; // Add support for multiple images
   createdAt?: string;
   updatedAt?: string;
 
@@ -80,21 +80,20 @@ type CollectionType = Saree["collectionId"];
 interface SareeForm {
   name: string;
   description: string;
-  price: number;
 
   collectionId: CollectionType;
   fabric: string;
   color: string;
   work: string;
-  image?: File | null | undefined;
+  image?: File | File[] | null | undefined; // Support both single and multiple files
+  removeImages?: string[];
 }
 
 const defaultFormData: SareeForm = {
   name: "",
   description: "",
-  price: 0,
 
-  collectionId: "", // Will be converted to collection ID on submit
+  collectionId: "", // Required field - must be selected
   fabric: "",
   color: "",
   work: "",
@@ -121,6 +120,7 @@ export default function AdminSarees() {
     name: string;
   } | null>(null);
   const [editingSaree, setEditingSaree] = useState<Saree | null>(null);
+  const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
   const [formData, setFormData] = useState<SareeForm>(defaultFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -139,11 +139,17 @@ export default function AdminSarees() {
         const sareesData = response.data.sarees || response.data;
         const pagination = response.data.pagination;
 
+        // Debug log to see the actual data structure
+        console.log("Raw sarees data:", sareesData);
+
         // Normalize the data to match our interface
         const normalizedSarees = sareesData.map((saree: any) => ({
           ...saree,
           id: saree._id || saree.id,
         }));
+
+        // Debug log to see normalized data
+        console.log("Normalized sarees:", normalizedSarees);
 
         setSareeList(normalizedSarees);
 
@@ -163,15 +169,38 @@ export default function AdminSarees() {
   const fetchCollections = async () => {
     try {
       setCollectionsLoading(true);
+      console.log("Fetching collections...");
       const response = await getCollections();
+      console.log("Collections response:", response);
+
       if (response.success && response.data) {
+        // Ensure collection objects have the expected structure
+        const normalizedCollections = response.data.map((collection) => ({
+          ...collection,
+          _id: collection._id || collection.id,
+          id: collection.id || collection._id,
+        }));
+
         // Store full collection objects
-        setCollections(response.data);
+        setCollections(normalizedCollections);
+        console.log("Collections loaded:", normalizedCollections);
+        console.log("Number of collections:", normalizedCollections.length);
+        console.log("First collection:", normalizedCollections[0]);
+        console.log(
+          "First collection structure:",
+          JSON.stringify(normalizedCollections[0], null, 2)
+        );
+      } else {
+        console.error("Failed to load collections:", response);
+        setCollections([]);
       }
     } catch (error) {
       console.error("Error fetching collections:", error);
+      setCollections([]);
+      toast.error("Failed to load collections");
     } finally {
       setCollectionsLoading(false);
+      console.log("Collections loading finished");
     }
   };
 
@@ -180,6 +209,47 @@ export default function AdminSarees() {
     fetchSarees();
     fetchCollections();
   }, []);
+
+  // Debug logging for form data changes
+  useEffect(() => {
+    console.log("Form Data Changed:", formData);
+    console.log("Selected Collection ID:", formData.collectionId);
+    console.log("Available collections:", collections);
+    console.log("Collections loading:", collectionsLoading);
+
+    if (formData.collectionId) {
+      const selectedCollection = collections.find(
+        (c) => c._id === formData.collectionId
+      );
+      console.log("Selected Collection:", selectedCollection);
+    } else {
+      console.log("No collection selected");
+    }
+
+    // Log image data
+    if (formData.image) {
+      console.log("Image data:", formData.image);
+      if (Array.isArray(formData.image)) {
+        console.log("Number of images:", formData.image.length);
+      }
+    }
+  }, [formData, collections, collectionsLoading]);
+
+  // Real-time form validation
+  useEffect(() => {
+    // Clear error messages when form becomes valid
+    if (
+      formData.name.trim() &&
+      formData.collectionId &&
+      formData.fabric.trim() &&
+      formData.color.trim() &&
+      formData.work.trim() &&
+      formData.description.trim()
+    ) {
+      // Form is valid
+      console.log("Form is valid");
+    }
+  }, [formData]);
 
   // Reload sarees when filters change
   useEffect(() => {
@@ -196,20 +266,34 @@ export default function AdminSarees() {
   const displayedSarees = sareeList;
 
   const handleEdit = (saree: Saree) => {
+    console.log("Editing saree:", saree);
+    console.log("Saree collectionId:", saree.collectionId);
+
     setEditingSaree(saree);
 
-    const collectionName = saree.collection?.name || "";
+    const formDataToSet = {
+      name: saree.name || "",
+      description: saree.description || "",
 
-    setFormData({
-      name: saree.name,
-      description: saree.description,
-      price: saree.price,
+      collectionId: saree.collectionId || "", // This is crucial
+      fabric: saree.fabric || "",
+      color: saree.color || "",
+      work: saree.work || "",
+      image: null, // Don't prefill with existing images for editing
+    };
 
-      collectionId: saree.collectionId || "", // Use collection ID for display
-      fabric: saree.fabric,
-      color: saree.color,
-      work: saree.work,
-    });
+    console.log(
+      "Setting form data for edit - saree collectionId:",
+      saree.collectionId
+    );
+    console.log(
+      "Setting form data for edit - formDataToSet collectionId:",
+      formDataToSet.collectionId
+    );
+
+    console.log("Setting form data for edit:", formDataToSet);
+    console.log("Collections available for edit:", collections);
+    setFormData(formDataToSet);
     setIsOpen(true);
   };
 
@@ -242,27 +326,64 @@ export default function AdminSarees() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Form validation
+    if (!formData.name.trim()) {
+      toast.error("Saree name is required");
+      return;
+    }
+
+    if (!formData.collectionId) {
+      toast.error("Please select a collection");
+      return;
+    }
+
+    if (!formData.fabric.trim()) {
+      toast.error("Fabric is required");
+      return;
+    }
+
+    if (!formData.color.trim()) {
+      toast.error("Color is required");
+      return;
+    }
+
+    if (!formData.work.trim()) {
+      toast.error("Work type is required");
+      return;
+    }
+
+    if (!formData.description.trim()) {
+      toast.error("Description is required");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    try {
-      // Convert collection name to ID
-      const selectedCollection = collections.find(
-        (c) => c._id === formData.collectionId
-      );
-      const collectionId = selectedCollection ? selectedCollection._id : "";
+    // Debug log to see what data is being sent
+    console.log("Form Data being submitted:", formData);
+    console.log("Collection ID in form data:", formData.collectionId);
+    console.log("Collections available:", collections);
+    console.log(
+      "Selected collection:",
+      collections.find((c) => c._id === formData.collectionId)
+    );
 
+    try {
       if (editingSaree) {
         // Update existing saree
-        const response = await updateSaree(editingSaree.id, {
-          name: formData.name,
-          description: formData.description,
-          price: formData.price,
-          collectionId: formData.collectionId, // ✅ direct ID
-          fabric: formData.fabric,
-          color: formData.color,
-          work: formData.work,
+        const updateData: any = {
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          collectionId: formData.collectionId, // This should now work
+          fabric: formData.fabric.trim(),
+          color: formData.color.trim(),
+          work: formData.work.trim(),
           image: formData.image,
-        });
+          ...(imagesToRemove.length > 0 && { removeImages: imagesToRemove }),
+        };
+
+        const response = await updateSaree(editingSaree.id, updateData);
 
         if (response.success) {
           setSareeList(
@@ -275,13 +396,12 @@ export default function AdminSarees() {
       } else {
         // Create new saree
         const response = await createSaree({
-          name: formData.name,
-          description: formData.description,
-          price: formData.price,
-          collectionId: formData.collectionId, // ✅ ID
-          fabric: formData.fabric,
-          color: formData.color,
-          work: formData.work,
+          name: formData.name.trim(),
+          description: formData.description.trim(),
+          collectionId: formData.collectionId, // This should now work
+          fabric: formData.fabric.trim(),
+          color: formData.color.trim(),
+          work: formData.work.trim(),
           image: formData.image,
         });
 
@@ -296,11 +416,18 @@ export default function AdminSarees() {
 
       setIsOpen(false);
       setEditingSaree(null);
+      setImagesToRemove([]); // Clear removed images list
+      console.log("Resetting form to default values");
+      console.log("Default form data:", defaultFormData);
       setFormData(defaultFormData);
+      console.log("Form data after reset:", formData);
     } catch (error) {
       console.error(
         editingSaree ? "Error updating saree:" : "Error creating saree:",
         error
+      );
+      toast.error(
+        editingSaree ? "Failed to update saree" : "Failed to create saree"
       );
     } finally {
       setIsSubmitting(false);
@@ -337,165 +464,321 @@ export default function AdminSarees() {
               </DialogTitle>
             </DialogHeader>
             <div className="overflow-y-auto flex-1 px-6 py-2">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="name">Saree Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) =>
-                      setFormData({ ...formData, name: e.target.value })
-                    }
-                    placeholder="Enter saree name"
-                    required
-                  />
+              {collectionsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <span className="ml-2">Loading collections...</span>
                 </div>
-                <div className="grid grid-cols-1 gap-4">
+              ) : collections.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground mb-4">
+                    No collections available
+                  </p>
+                  <Button
+                    onClick={() =>
+                      (window.location.href = "/admin/collections")
+                    }
+                    variant="outline"
+                  >
+                    Create Collection First
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <Label htmlFor="price">Price (₹)</Label>
+                    <Label htmlFor="name">Saree Name</Label>
                     <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
+                      id="name"
+                      value={formData.name}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          price: Number(e.target.value),
-                        })
+                        setFormData({ ...formData, name: e.target.value })
                       }
-                      placeholder="18999"
+                      placeholder="Enter saree name"
                       required
                     />
                   </div>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <Label htmlFor="collectionId">Collection</Label>
 
-                    <Select
-                      value={formData.collectionId}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, collectionId: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select collection" />
-                      </SelectTrigger>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label htmlFor="collectionId">Collection</Label>
 
-                      <SelectContent>
-                        {collections.map((collection) => (
-                          <SelectItem
-                            key={collection._id}
-                            value={collection._id}
-                          >
-                            {collection.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      <Select
+                        value={formData.collectionId || ""}
+                        onValueChange={(value) => {
+                          console.log("Collection selected in Select:", value);
+                          console.log(
+                            "Current formData before update:",
+                            formData
+                          );
+                          // Make sure we're not setting an empty or invalid value
+                          if (
+                            value &&
+                            value !== "" &&
+                            value !== "no-collections" &&
+                            value !== "loading"
+                          ) {
+                            const newFormData = {
+                              ...formData,
+                              collectionId: value,
+                            };
+                            console.log("New formData to be set:", newFormData);
+                            setFormData(newFormData);
+                            console.log("Collection ID set to:", value);
+                          } else {
+                            console.log(
+                              "Invalid value selected, not updating form. Value was:",
+                              value
+                            );
+                          }
+                        }}
+                      >
+                        <SelectTrigger
+                          className={
+                            formData.collectionId ? "" : "border-red-500"
+                          }
+                        >
+                          <SelectValue placeholder="Select collection">
+                            {formData.collectionId
+                              ? collections.find(
+                                  (c) =>
+                                    (c._id || c.id) === formData.collectionId
+                                )?.name || "Select collection"
+                              : "Select collection"}
+                          </SelectValue>
+                        </SelectTrigger>
+
+                        <SelectContent>
+                          {collectionsLoading ? (
+                            <SelectItem value="loading" disabled>
+                              Loading collections...
+                            </SelectItem>
+                          ) : collections.length === 0 ? (
+                            <SelectItem value="no-collections" disabled>
+                              No collections available
+                            </SelectItem>
+                          ) : (
+                            collections.map((collection) => (
+                              <SelectItem
+                                key={collection._id || collection.id}
+                                value={collection._id || collection.id}
+                              >
+                                {collection.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      {!formData.collectionId && (
+                        <p className="text-sm text-red-500 mt-1">
+                          Collection is required
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="fabric">Fabric</Label>
+                      <Input
+                        id="fabric"
+                        value={formData.fabric}
+                        onChange={(e) =>
+                          setFormData({ ...formData, fabric: e.target.value })
+                        }
+                        placeholder="e.g., Pure Silk"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="color">Color</Label>
+                      <Input
+                        id="color"
+                        value={formData.color}
+                        onChange={(e) =>
+                          setFormData({ ...formData, color: e.target.value })
+                        }
+                        placeholder="e.g., Red"
+                      />
+                    </div>
+                  </div>
                   <div>
-                    <Label htmlFor="fabric">Fabric</Label>
+                    <Label htmlFor="work">Work Type</Label>
                     <Input
-                      id="fabric"
-                      value={formData.fabric}
+                      id="work"
+                      value={formData.work}
                       onChange={(e) =>
-                        setFormData({ ...formData, fabric: e.target.value })
+                        setFormData({ ...formData, work: e.target.value })
                       }
-                      placeholder="e.g., Pure Silk"
+                      placeholder="e.g., Zari Work"
                     />
                   </div>
                   <div>
-                    <Label htmlFor="color">Color</Label>
-                    <Input
-                      id="color"
-                      value={formData.color}
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
                       onChange={(e) =>
-                        setFormData({ ...formData, color: e.target.value })
-                      }
-                      placeholder="e.g., Red"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="work">Work Type</Label>
-                  <Input
-                    id="work"
-                    value={formData.work}
-                    onChange={(e) =>
-                      setFormData({ ...formData, work: e.target.value })
-                    }
-                    placeholder="e.g., Zari Work"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Enter description"
-                    rows={3}
-                  />
-                </div>
-                <div>
-                  <Label className="mb-2 block">Images</Label>
-
-                  {/* Hidden file input */}
-                  <input
-                    id="sareeImages"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => {
-                      const files = e.target.files;
-                      if (files) {
                         setFormData({
                           ...formData,
-                          image: files[0], // ya array bana sakte ho agar backend support karta ho
-                        });
+                          description: e.target.value,
+                        })
                       }
-                    }}
-                  />
+                      placeholder="Enter description"
+                      rows={3}
+                    />
+                  </div>
+                  <div>
+                    <Label className="mb-2 block">Images</Label>
 
-                  {/* Custom upload box */}
-                  <label
-                    htmlFor="sareeImages"
-                    className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                    {/* Hidden file input */}
+                    <input
+                      id="sareeImages"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = e.target.files;
+                        if (files) {
+                          // Convert FileList to array and store
+                          const fileArray = Array.from(files);
+                          setFormData({
+                            ...formData,
+                            image: fileArray,
+                          });
+                        }
+                      }}
+                    />
+
+                    {/* Custom upload box */}
+                    <label
+                      htmlFor="sareeImages"
+                      className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors"
+                    >
+                      <Image className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-muted-foreground">
+                        Click to upload multiple images
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        PNG, JPG, JPEG allowed (Max 10 images)
+                      </p>
+                    </label>
+
+                    {/* Existing image previews when editing */}
+                    {editingSaree && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium mb-2">
+                          Existing Images
+                        </h4>
+                        <div className="grid grid-cols-3 gap-2">
+                          {(editingSaree.images &&
+                          editingSaree.images.length > 0
+                            ? editingSaree.images
+                            : [editingSaree.image]
+                          )
+                            .filter(Boolean)
+                            .map((imgUrl, index) => {
+                              // Check if this image is marked for removal
+                              const isMarkedForRemoval =
+                                imagesToRemove.includes(imgUrl);
+                              return (
+                                !isMarkedForRemoval && (
+                                  <div
+                                    key={`existing-${index}`}
+                                    className="relative"
+                                  >
+                                    <img
+                                      src={imgUrl}
+                                      alt={`Existing ${index + 1}`}
+                                      className="w-full h-24 object-cover rounded border"
+                                    />
+                                    <button
+                                      type="button"
+                                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                      onClick={() => {
+                                        // Mark this image for removal by adding to a state
+                                        if (
+                                          window.confirm(
+                                            "Are you sure you want to remove this existing image?"
+                                          )
+                                        ) {
+                                          setImagesToRemove((prev) => [
+                                            ...prev,
+                                            imgUrl,
+                                          ]);
+                                        }
+                                      }}
+                                    >
+                                      ×
+                                    </button>
+                                    <div className="absolute bottom-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                                      {index + 1}
+                                    </div>
+                                  </div>
+                                )
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* New image previews */}
+                    {formData.image &&
+                      Array.isArray(formData.image) &&
+                      formData.image.length > 0 && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-medium mb-2">
+                            New Images to Upload
+                          </h4>
+                          <div className="grid grid-cols-3 gap-2">
+                            {formData.image.map((file, index) => (
+                              <div key={index} className="relative">
+                                <img
+                                  src={URL.createObjectURL(file)}
+                                  alt={`Preview ${index + 1}`}
+                                  className="w-full h-24 object-cover rounded border"
+                                />
+                                <button
+                                  type="button"
+                                  className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                                  onClick={() => {
+                                    const newImages = [
+                                      ...(formData.image as File[]),
+                                    ];
+                                    newImages.splice(index, 1);
+                                    setFormData({
+                                      ...formData,
+                                      image:
+                                        newImages.length > 0 ? newImages : null,
+                                    });
+                                  }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={isSubmitting}
                   >
-                    <Image className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Click to upload images
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PNG, JPG, JPEG allowed
-                    </p>
-                  </label>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {editingSaree ? "Updating..." : "Adding..."}
-                    </>
-                  ) : editingSaree ? (
-                    "Update Saree"
-                  ) : (
-                    "Add Saree"
-                  )}
-                </Button>
-              </form>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {editingSaree ? "Updating..." : "Adding..."}
+                      </>
+                    ) : editingSaree ? (
+                      "Update Saree"
+                    ) : (
+                      "Add Saree"
+                    )}
+                  </Button>
+                </form>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -514,15 +797,20 @@ export default function AdminSarees() {
         </div>
         <Select value={collectionFilter} onValueChange={setCollectionFilter}>
           <SelectTrigger className="w-full sm:w-48">
-            <SelectValue placeholder={collectionsLoading ? "Loading..." : "All Collections"} />
+            <SelectValue
+              placeholder={
+                collectionsLoading ? "Loading..." : "All Collections"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Collections</SelectItem>
-            {!collectionsLoading && collections.map((collection) => (
-              <SelectItem key={collection._id} value={collection._id}>
-                {collection.name}
-              </SelectItem>
-            ))}
+            {!collectionsLoading &&
+              collections.map((collection) => (
+                <SelectItem key={collection._id} value={collection._id}>
+                  {collection.name}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       </div>
@@ -533,7 +821,11 @@ export default function AdminSarees() {
           <Card key={saree.id} className="overflow-hidden">
             <div className="aspect-[3/4] bg-muted">
               <img
-                src={saree.image}
+                src={
+                  (saree as any).images && (saree as any).images.length > 0
+                    ? (saree as any).images[0]
+                    : saree.image || "/placeholder-image.jpg"
+                }
                 alt={saree.name}
                 className="w-full h-full object-cover"
               />
@@ -545,9 +837,7 @@ export default function AdminSarees() {
               <p className="text-sm text-muted-foreground">
                 {saree.collection?.name || saree.collectionId}
               </p>
-              <p className="text-primary font-semibold mt-1">
-                ₹{saree.price.toLocaleString()}
-              </p>
+
               <div className="flex gap-2 mt-3">
                 <Button
                   variant="outline"

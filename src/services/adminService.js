@@ -29,14 +29,42 @@ export const getSareeById = async (id) => {
 };
 
 export const createSaree = async (sareeData) => {
+    console.log('Creating saree with data:', sareeData);
+    console.log('Collection ID in sareeData:', sareeData.collectionId);
+
     const formData = new FormData();
 
     // Add all saree data to FormData
     Object.keys(sareeData).forEach(key => {
+        console.log(`Processing key: ${key}, value:`, sareeData[key]);
+
+        // Allow undefined/null to be filtered out, but allow empty strings
         if (sareeData[key] !== undefined && sareeData[key] !== null) {
-            formData.append(key, sareeData[key]);
+            console.log(`Appending ${key} to formData`);
+
+            // Handle File arrays specially
+            if (key === 'image' && Array.isArray(sareeData[key])) {
+                // Append each file with the same key name
+                sareeData[key].forEach(file => {
+                    formData.append('images', file);
+                });
+            } else if (key === 'image' && sareeData[key] instanceof File) {
+                // Single file
+                formData.append('images', sareeData[key]);
+            } else {
+            // Regular fields (including empty strings for collectionId)
+                formData.append(key, sareeData[key]);
+            }
+        } else {
+            console.log(`Skipping ${key} because it's undefined or null`);
         }
     });
+
+    // Log the FormData contents
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+    }
 
     const res = await apiService.post(`/admin/sarees`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -46,14 +74,42 @@ export const createSaree = async (sareeData) => {
 };
 
 export const updateSaree = async (id, sareeData) => {
+    console.log('Updating saree with data:', sareeData);
+    console.log('Collection ID in sareeData:', sareeData.collectionId);
+
     const formData = new FormData();
 
     // Add all saree data to FormData
     Object.keys(sareeData).forEach(key => {
+        console.log(`Processing key: ${key}, value:`, sareeData[key]);
+
+        // Allow undefined/null to be filtered out, but allow empty strings
         if (sareeData[key] !== undefined && sareeData[key] !== null) {
-            formData.append(key, sareeData[key]);
+            console.log(`Appending ${key} to formData`);
+
+            // Handle File arrays specially
+            if (key === 'image' && Array.isArray(sareeData[key])) {
+                // Append each file with the same key name
+                sareeData[key].forEach(file => {
+                    formData.append('images', file);
+                });
+            } else if (key === 'image' && sareeData[key] instanceof File) {
+                // Single file
+                formData.append('images', sareeData[key]);
+            } else {
+            // Regular fields (including empty strings for collectionId)
+                formData.append(key, sareeData[key]);
+            }
+        } else {
+            console.log(`Skipping ${key} because it's undefined or null`);
         }
     });
+
+    // Log the FormData contents
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+    }
 
     const res = await apiService.put(`/admin/sarees/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -152,6 +208,43 @@ export const updateTestimonial = async (id, testimonialData) => {
 export const deleteTestimonial = async (id) => {
     const res = await apiService.delete(`/admin/testimonials/${id}`, {
         showSuccess: true,
+    });
+    return res.data;
+};
+
+// Review API functions
+export const getReviews = async (status = 'all', page = 1, limit = 10) => {
+    const params = new URLSearchParams();
+    params.append('status', status);
+    params.append('page', page);
+    params.append('limit', limit);
+
+    const queryString = params.toString();
+    const url = `/reviews/admin/all${queryString ? '?' : ''}${queryString}`;
+
+    const res = await apiService.get(url);
+    return res.data;
+};
+
+export const updateReviewStatus = async (id, status) => {
+    const res = await apiService.put(`/reviews/admin/${id}/status`, {
+        isApproved: status
+    }, {
+        showSuccess: true
+    });
+    return res.data;
+};
+
+export const deleteReview = async (id) => {
+    const res = await apiService.delete(`/reviews/admin/${id}`, {
+        showSuccess: true
+    });
+    return res.data;
+};
+
+export const toggleReviewFeatured = async (id) => {
+    const res = await apiService.put(`/reviews/admin/${id}/toggle-featured`, {}, {
+        showSuccess: true
     });
     return res.data;
 };

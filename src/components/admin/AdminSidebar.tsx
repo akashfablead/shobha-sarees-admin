@@ -26,11 +26,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import logo from "../../assets/shobha-saree-logo.png";
 
 const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Collections", url: "/admin/collections", icon: Package },
   { title: "Sarees", url: "/admin/sarees", icon: Image },
+  { title: "Reviews", url: "/admin/reviews", icon: MessageSquare },
   { title: "Contacts", url: "/admin/contacts", icon: MessageSquare },
   { title: "Testimonials", url: "/admin/testimonials", icon: MessageSquare },
   { title: "Settings", url: "/admin/settings", icon: Settings },
@@ -38,6 +40,7 @@ const menuItems = [
 
 export function AdminSidebar() {
   const [isOpen, setIsOpen] = useState(false);
+  const [logoError, setLogoError] = useState(false);
   const { logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -78,10 +81,16 @@ export function AdminSidebar() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="p-6 border-b border-border">
-            <h1 className="text-xl font-serif font-bold text-primary">
-              Shobha Saree
-            </h1>
-            <p className="text-xs text-muted-foreground mt-1">Admin Panel</p>
+            {!logoError ? (
+              <img
+                src={logo || ""}
+                alt="Shobha Saree Logo"
+                className="h-20 w-auto object-contain "
+                onError={() => setLogoError(true)}
+              />
+            ) : (
+              <div className="font-bold text-lg text-primary">Shobha Saree</div>
+            )}
           </div>
 
           {/* Navigation */}
