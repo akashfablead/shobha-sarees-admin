@@ -1,4 +1,10 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,6 +28,7 @@ export default function AdminSettings() {
     whatsapp: string;
     instagram: string;
     facebook: string;
+    youtube: string;
     logoImage: string | File;
     bannerImage: string | File;
   };
@@ -36,6 +43,7 @@ export default function AdminSettings() {
     whatsapp: "",
     instagram: "",
     facebook: "",
+    youtube: "",
     logoImage: "",
     bannerImage: "",
   });
@@ -58,6 +66,7 @@ export default function AdminSettings() {
           whatsapp: data.whatsapp || "",
           instagram: data.instagram || "",
           facebook: data.facebook || "",
+          youtube: data.youtube || "",
           logoImage: data.logoImage || "",
           bannerImage: data.bannerImage || "",
         });
@@ -74,6 +83,7 @@ export default function AdminSettings() {
           whatsapp: "",
           instagram: "",
           facebook: "",
+          youtube: "",
           logoImage: "",
           bannerImage: "",
         });
@@ -274,6 +284,15 @@ export default function AdminSettings() {
               value={settings.facebook}
               onChange={handleInputChange("facebook")}
               placeholder="https://facebook.com/shobhasaree"
+            />
+          </div>
+          <div>
+            <Label htmlFor="youtube">YouTube URL</Label>
+            <Input
+              id="youtube"
+              value={settings.youtube}
+              onChange={handleInputChange("youtube")}
+              placeholder="https://youtube.com/@shobhasaree"
             />
           </div>
         </CardContent>
